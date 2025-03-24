@@ -13,8 +13,6 @@ const io = socket_io(httpServer, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"],
-    allowedHeaders: ["socket_id"],
-    credentials: true
   }
 })
 
@@ -26,7 +24,7 @@ io.on("connection", (socket) => {
 
   console.log(socket.rooms);
 
-  console.log(io.of("/").sockets.size);
+  console.log(io.of("/").sockets.size); //在线人数
 
 
   socket.on("messages", (data) => {
