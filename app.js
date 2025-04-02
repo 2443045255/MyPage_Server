@@ -18,14 +18,9 @@ const io = socket_io(httpServer, {
 
 io.socketsJoin('room_1')
 io.on("connection", (socket) => {
-  console.log(socket.id)
-
   socket.join('public_1_room') //将用户加入房间
 
-  console.log(socket.rooms);
-
-  console.log(io.of("/").sockets.size); //在线人数
-
+  console.log(`当前进入用户:${socket.rooms},在线人数:${io.of("/").sockets.size}`);
 
   socket.on("messages", (data) => {
     socket.emit(data)
