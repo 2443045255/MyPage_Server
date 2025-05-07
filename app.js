@@ -20,21 +20,12 @@ const db = mysql.createPool({
   database: "rxaser_page"
 })
 
-function db_func(_sql, _stu) {
-  return new Promise((resolve) => {
-    let sql = _sql
-    // 对象里面的属性必须与数据表的字段名一致
-    let stu = _stu
-    db.query(sql, stu, (err, results) => {
-      if (err) {
-        return console.log("数据库错误:" + err.message)
-      }
-      resolve(results)
-      // if (results.affectedRows) {
-      //   console.log("执行成功");
-      // }
-      // console.log(results);
-    })
+function db_func(_sql, _stu, callBack) {
+  let sql = _sql
+  let stu = _stu
+  db.query(sql, stu, (err, results) => {
+    if (err) throw err
+    callBack(results)
   })
 }
 
@@ -54,27 +45,28 @@ const io = socket_io(httpServer, {
 var UserMsgHistory = {}
 var Rooms = []
 function getUserMsgHistory() {
-  db_func(`select * from rooms`)
-    .then((results) => {
-      results.forEach(item => {
-        UserMsgHistory[item.RoomName] = []
-        Rooms.push(item.RoomName)
-      });
-      for (let i = 0; i <= Rooms.length - 1; i++) {
-        db_func(`select * from ${Rooms[i]}`)
-          .then((results) => {
-            for (let j = 0; j <= results.length - 1; j++) {
-              var item = {}
-              item.userID = results[j].userID
-              item.userName = results[j].userName
-              item.userMsg_Time = JSON.parse(results[j].userMsg_Time)
-              UserMsgHistory[Rooms[i]].push(item)
-            }
-            console.log(UserMsgHistory);
+  UserMsgHistory = {}
+  Rooms = []
+  db_func(`select * from rooms`, '', (results) => {
+    results.forEach(item => {
+      UserMsgHistory[item.RoomName] = []
+      Rooms.push(item.RoomName)
+    });
+    for (let i = 0; i <= Rooms.length - 1; i++) {
+      db_func(`select * from ${Rooms[i]}`, '', (results) => {
+        for (let j = 0; j <= results.length - 1; j++) {
+          var item = {}
+          item.userID = results[j].userID
+          item.userName = results[j].userName
+          item.userMsg_Time = JSON.parse(results[j].userMsg_Time)
+          UserMsgHistory[Rooms[i]].push(item)
+        }
+        console.log(UserMsgHistory);
 
-          })
-      }
-    })
+      })
+    }
+  })
+
 }
 getUserMsgHistory()
 
@@ -88,14 +80,15 @@ io.on("connection", (socket) => {
 
   socket.on("连接", (data) => {
     // socket.emit(data)
-    console.log(data);
+    // console.log(data);
   })
   socket.on("msg", (data) => {
     if (!data.userMsg_Time[0]) {
       return
     }
-    db_func(`insert into room_1 set ?`, data)
-    getUserMsgHistory()
+    db_func(`insert into room_1 set ?`, data, () => {
+      getUserMsgHistory()
+    })
     socket.emit("msg", data)
     socket.to("room_1").emit("msg", data)
     // console.log(data);
@@ -144,6 +137,10 @@ app.get("/api/UserMsgHistory", (req, res) => {
       userMsg_TimeArr = []
     }
   }
+
+  // console.log("============================data1")
+  // console.log(data1)
+
   res.send(data1)
 })
 
