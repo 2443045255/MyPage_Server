@@ -71,7 +71,7 @@ function getUserMsgHistory() {
               UserMsgHistory[Rooms[i]].push(item)
             }
             console.log(UserMsgHistory);
-            
+
           })
       }
     })
@@ -110,6 +110,10 @@ io.on("connection", (socket) => {
 app.get("/api/UserMsgHistory", (req, res) => {
   let room = req.query.RoomName
   let len = req.query.Len
+  // 获取聊天记录条目大于当前记录 处理
+  // if (len >= UserMsgHistory[room].length) {
+  //   len = UserMsgHistory[room].length - 1
+  // }
   let data = []
   for (let i = UserMsgHistory[room].length - 1; i >= UserMsgHistory[room].length - len; i--) {
     data.unshift(UserMsgHistory[room][i])
@@ -120,6 +124,7 @@ app.get("/api/UserMsgHistory", (req, res) => {
     }
   }
 
+  // 转为堆叠记录
   let userMsg_TimeArr = []
   let data1 = []
   for (let j = 0; j <= data.length - 1; j++) {
