@@ -111,19 +111,28 @@ app.get("/api/UserMsgHistory", (req, res) => {
   let room = req.query.RoomName
   let len = req.query.Len
   // 获取聊天记录条目大于当前记录 处理
-  // if (len >= UserMsgHistory[room].length) {
-  //   len = UserMsgHistory[room].length - 1
-  // }
-  let data = []
-  for (let i = UserMsgHistory[room].length - 1; i >= UserMsgHistory[room].length - len; i--) {
-    data.unshift(UserMsgHistory[room][i])
-    if (i == UserMsgHistory[room].length - len) {
-      if (UserMsgHistory[room][i - 1].userID == UserMsgHistory[room][i].userID) {
-        len++
-      }
-    }
-  }
+  let arrLen = UserMsgHistory[room].length
+  console.log(arrLen);
 
+  if (len >= arrLen) {
+    len = arrLen
+  }
+  let data = []
+  // 处理同一个ID的消息
+  for (let i = 1; i <= len; i++) {
+    data.unshift(UserMsgHistory[room][arrLen - i])
+    if (i == len) {
+      if (UserMsgHistory[room][arrLen - i - 1]) {
+        if (data[0].userID == UserMsgHistory[room][arrLen - i - 1].userID) {
+          len++
+        }
+      }
+
+    }
+
+  }
+  // console.log("============================data")
+  // console.log(data)
   // 转为堆叠记录
   let userMsg_TimeArr = []
   let data1 = []
