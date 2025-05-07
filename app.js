@@ -1,3 +1,4 @@
+const util = require('util');
 const http = require('http')
 const path = require('path')
 const express = require('express')
@@ -48,41 +49,62 @@ const io = socket_io(httpServer, {
   }
 })
 
-io.socketsJoin('room_1')
-io.on("connection", (socket) => {
-  socket.join('room_1') //将用户加入房间
-  console.log(socket.rooms);
-
-  console.log(`当前进入用户:${socket.rooms},在线人数:${io.of("/").sockets.size}`);
-
-  socket.on("messages", (data) => {
-    socket.emit(data)
-  })
-});
-
 // 读取聊天记录保存到后端
 // 查询现有房间，查询房间聊天记录
 var UserMsgHistory = {}
 var Rooms = []
-db_func(`select * from rooms`)
-  .then((results) => {
-    results.forEach(item => {
-      UserMsgHistory[item.RoomName] = []
-      Rooms.push(item.RoomName)
-    });
-    for (let i = 0; i <= Rooms.length - 1; i++) {
-      db_func(`select * from ${Rooms[i]}`)
-        .then((results) => {
-          for (let j = 0; j <= results.length - 1; j++) {
-            var item = {}
-            item.userID = results[j].userID
-            item.userName = results[j].userName
-            item.userMsg_Time = JSON.parse(results[j].userMsg_Time)
-            UserMsgHistory[Rooms[i]].push(item)
-          }
-        })
-    }
+function getUserMsgHistory() {
+  db_func(`select * from rooms`)
+    .then((results) => {
+      results.forEach(item => {
+        UserMsgHistory[item.RoomName] = []
+        Rooms.push(item.RoomName)
+      });
+      for (let i = 0; i <= Rooms.length - 1; i++) {
+        db_func(`select * from ${Rooms[i]}`)
+          .then((results) => {
+            for (let j = 0; j <= results.length - 1; j++) {
+              var item = {}
+              item.userID = results[j].userID
+              item.userName = results[j].userName
+              item.userMsg_Time = JSON.parse(results[j].userMsg_Time)
+              UserMsgHistory[Rooms[i]].push(item)
+            }
+            console.log(UserMsgHistory);
+            
+          })
+      }
+    })
+}
+getUserMsgHistory()
+
+
+io.socketsJoin('room_1')
+io.on("connection", (socket) => {
+  socket.join('room_1') //将用户加入房间
+  // console.log(socket.rooms);
+
+  console.log(`当前进入用户:${socket.id},房间:${util.inspect(socket.rooms, { depth: null })},在线人数:${io.of("/").sockets.size}`);
+
+  socket.on("连接", (data) => {
+    // socket.emit(data)
+    console.log(data);
   })
+  socket.on("msg", (data) => {
+    if (!data.userMsg_Time[0]) {
+      return
+    }
+    db_func(`insert into room_1 set ?`, data)
+    getUserMsgHistory()
+    socket.emit("msg", data)
+    socket.to("room_1").emit("msg", data)
+    // console.log(data);
+  })
+  socket.on("disconnect", () => {
+    console.log(`当前离开用户:${socket.id},房间:${util.inspect(socket.rooms, { depth: null })},在线人数:${io.of("/").sockets.size}`);
+  })
+});
+
 
 // 获取历史聊天记录
 app.get("/api/UserMsgHistory", (req, res) => {
@@ -102,7 +124,7 @@ app.get("/api/UserMsgHistory", (req, res) => {
   let data1 = []
   for (let j = 0; j <= data.length - 1; j++) {
     userMsg_TimeArr.push(data[j].userMsg_Time)
-    if (j == data.length - 1 || data[j].userName != data[j + 1].userName) {
+    if (j == data.length - 1 || data[j].userID != data[j + 1].userID) {
       data1.push({ ...data[j] })
       data1[data1.length - 1].userMsg_Time = userMsg_TimeArr
       userMsg_TimeArr = []
