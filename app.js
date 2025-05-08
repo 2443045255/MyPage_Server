@@ -61,7 +61,7 @@ function getUserMsgHistory() {
           item.userMsg_Time = JSON.parse(results[j].userMsg_Time)
           UserMsgHistory[Rooms[i]].push(item)
         }
-        console.log(UserMsgHistory);
+        // console.log(UserMsgHistory);
 
       })
     }
@@ -105,7 +105,7 @@ app.get("/api/UserMsgHistory", (req, res) => {
   let len = req.query.Len
   // 获取聊天记录条目大于当前记录 处理
   let arrLen = UserMsgHistory[room].length
-  console.log(arrLen);
+  // console.log(arrLen);
 
   if (len >= arrLen) {
     len = arrLen
