@@ -25,7 +25,10 @@ function db_func(_sql, _stu, callBack) {
   let stu = _stu
   db.query(sql, stu, (err, results) => {
     if (err) throw err
-    callBack(results)
+    if (callBack) {
+      callBack(results)
+    }
+    // console.log("db_func")
   })
 }
 
@@ -69,6 +72,11 @@ function getUserMsgHistory() {
 
 }
 getUserMsgHistory()
+getAllUserInfoArr()
+setInterval(() => {
+  getUserMsgHistory()
+  getAllUserInfoArr()
+}, 5000);
 
 
 io.socketsJoin('room_1')
@@ -144,6 +152,45 @@ app.get("/api/UserMsgHistory", (req, res) => {
   res.send(data1)
 })
 
+var AllUserInfoArr = {}
+
+app.get("/api/saveUserInfo", (req, res) => {
+  let q = req.query
+  db_func('SELECT * FROM user WHERE ?', { UserID: q.UserID }, (results) => {
+    // console.log(results);
+    if (results.length == 0) {
+      db_func(`insert into user set ?`, {
+        UserID: q.UserID,
+        UserName: q.UserName,
+        UserHandPhoto: q.UserHandPhoto
+      })
+    } else if (results[0].UserName != q.UserName || results[0].UserHandPhoto != q.UserHandPhoto) {
+      db_func(`update user set ? where UserID = ?`, [{
+        UserName: q.UserName,
+        UserHandPhoto: q.UserHandPhoto
+      }, q.UserID])
+    }
+
+    getAllUserInfoArr()
+  })
+})
+
+// 查询所有用户数据
+function getAllUserInfoArr() {
+  AllUserInfoArr = {}
+  db_func("SELECT * FROM user", '', (results) => {
+    results.forEach(item => {
+      let arr = [item.UserName, item.UserHandPhoto]
+      AllUserInfoArr[item.UserID] = arr
+    });
+    // console.log(AllUserInfoArr);
+
+  })
+}
+
+app.get("/api/getAllUserInfoArr", (req, res) => {
+  res.send(AllUserInfoArr)
+})
 // 插入数据
 // for (let i = 1; i <= 6; i++) {
 //   db_func(`insert into room_1 set ?`, {
